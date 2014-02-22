@@ -127,6 +127,11 @@ namespace System.Web.Mvc.Routing
 
             dataTokens[RouteDataTokenKeys.Actions] = _actions;
 
+            if (!TargetIsAction)
+            {
+                dataTokens[RouteDataTokenKeys.Controller] = _actions[0].ControllerDescriptor;
+            }
+
             int order = Order;
 
             if (order != default(int))

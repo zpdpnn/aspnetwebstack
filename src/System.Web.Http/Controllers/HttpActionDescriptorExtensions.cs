@@ -7,15 +7,34 @@ namespace System.Web.Http.Controllers
 {
     internal static class HttpActionDescriptorExtensions
     {
-        public static bool HasRoutingAttribute(this HttpActionDescriptor actionDescriptor)
+        private const string AttributeRoutedPropertyKey = "MS_IsAttributeRouted";
+
+        public static bool IsAttributeRouted(this HttpActionDescriptor actionDescriptor)
         {
             if (actionDescriptor == null)
             {
                 throw new ArgumentNullException("actionDescriptor");
             }
 
-            return actionDescriptor.GetCustomAttributes<IDirectRouteFactory>(inherit: false).Any()
-                || actionDescriptor.GetCustomAttributes<IHttpRouteInfoProvider>(inherit: false).Any();
+            object value;
+            actionDescriptor.Properties.TryGetValue(AttributeRoutedPropertyKey, out value);
+
+            // We fall back to the attributes here so that we continue to do the right thing when 
+            // MapAttributeRoutes isn't called.
+            return
+                value as bool? ?? false ||
+                actionDescriptor.GetCustomAttributes<IDirectRouteFactory>(inherit: false).Any() ||
+                actionDescriptor.GetCustomAttributes<IHttpRouteInfoProvider>(inherit: false).Any();
+        }
+
+        public static void SetIsAttributeRouted(this HttpActionDescriptor actionDescriptor, bool value)
+        {
+            if (actionDescriptor == null)
+            {
+                throw new ArgumentNullException("actionDescriptor");
+            }
+
+            actionDescriptor.Properties[AttributeRoutedPropertyKey] = value;
         }
     }
 }
