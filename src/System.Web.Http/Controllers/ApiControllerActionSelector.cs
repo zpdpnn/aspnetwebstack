@@ -93,7 +93,7 @@ namespace System.Web.Http.Controllers
             // Includes action descriptors for actionsByVerb with and without route attributes.
             private readonly CandidateAction[] _combinedCandidateActions;
 
-            private readonly IDictionary<HttpActionDescriptor, string[]> _actionParameterNames = new Dictionary<HttpActionDescriptor, string[]>();
+            private readonly IDictionary<ReflectedHttpActionDescriptor, string[]> _actionParameterNames = new Dictionary<ReflectedHttpActionDescriptor, string[]>();
 
             // Includes action descriptors for actionsByVerb with and without route attributes.
             private readonly ILookup<string, HttpActionDescriptor> _combinedActionNameMapping;
@@ -138,7 +138,11 @@ namespace System.Web.Http.Controllers
                             .Select(binding => binding.Descriptor.Prefix ?? binding.Descriptor.ParameterName).ToArray());
                 }
 
-                _combinedActionNameMapping = _combinedCandidateActions.Select(c => c.ActionDescriptor).ToLookup(actionDesc => actionDesc.ActionName, StringComparer.OrdinalIgnoreCase);
+                _combinedActionNameMapping = 
+                    _combinedCandidateActions
+                    .Select(c => c.ActionDescriptor)
+                    .Cast<HttpActionDescriptor>()
+                    .ToLookup(actionDesc => actionDesc.ActionName, StringComparer.OrdinalIgnoreCase);
             }
 
             public HttpControllerDescriptor HttpControllerDescriptor
@@ -368,7 +372,7 @@ namespace System.Web.Http.Controllers
                 if (routeData.Values.TryGetValue(RouteValueKeys.Action, out actionName))
                 {
                     // We have an explicit {action} value, do traditional binding. Just lookup by actionName
-                    HttpActionDescriptor[] actionsFoundByName = _standardActions.StandardActionNameMapping[actionName].ToArray();
+                    ReflectedHttpActionDescriptor[] actionsFoundByName = _standardActions.StandardActionNameMapping[actionName].ToArray();
 
                     // Throws HttpResponseException with NotFound status because no action matches the Name
                     if (actionsFoundByName.Length == 0)
@@ -445,7 +449,7 @@ namespace System.Web.Http.Controllers
 
                 foreach (var candidate in candidatesFound)
                 {
-                    HttpActionDescriptor descriptor = candidate.ActionDescriptor;
+                    ReflectedHttpActionDescriptor descriptor = candidate.ActionDescriptor;
                     if (IsSubset(_actionParameterNames[descriptor], candidate.CombinedParameterNames))
                     {
                         matches.Add(candidate);
@@ -518,7 +522,7 @@ namespace System.Web.Http.Controllers
             }
 
             // This is called when we don't specify an Action name
-            // Get list of actionsByVerb that match a given verb. This can match by name or IActionHttpMethodSelecto
+            // Get list of actionsByVerb that match a given verb. This can match by name or IActionHttpMethodSelector
             private static CandidateAction[] FindActionsForVerb(HttpMethod verb, CandidateAction[][] actionsByVerb, CandidateAction[] otherActions)
             {
                 // Check cache for common verbs.
@@ -633,7 +637,7 @@ namespace System.Web.Http.Controllers
             // Remember this so that we can apply it for model binding. 
             public IHttpRouteData RouteDataSource { get; private set; }
 
-            public HttpActionDescriptor ActionDescriptor
+            public ReflectedHttpActionDescriptor ActionDescriptor
             {
                 get
                 {
@@ -662,7 +666,7 @@ namespace System.Web.Http.Controllers
         private class StandardActionSelectionCache
         {
             // Includes action descriptors only for actions accessible via standard routing (without route attributes).
-            public ILookup<string, HttpActionDescriptor> StandardActionNameMapping { get; set; }
+            public ILookup<string, ReflectedHttpActionDescriptor> StandardActionNameMapping { get; set; }
 
             // Includes action descriptors only for actions accessible via standard routing (without route attributes).
             public CandidateAction[] StandardCandidateActions { get; set; }

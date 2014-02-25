@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Web.Http.Controllers;
 using System.Web.Http.Dispatcher;
+using System.Web.Http.Properties;
 
 namespace System.Web.Http.Routing
 {
@@ -113,11 +114,28 @@ namespace System.Web.Http.Routing
                     }
                     
                     List<HttpActionDescriptor> actions = actionsByName.SelectMany(g => g).ToList();
-                    entries.AddRange(directRouteProvider.GetDirectRoutes(controllerDescriptor, actions, constraintResolver));
+                    IReadOnlyCollection<RouteEntry> newEntries = directRouteProvider.GetDirectRoutes(controllerDescriptor, actions, constraintResolver);
+                    if (newEntries == null)
+                    {
+                        throw Error.InvalidOperation(
+                            SRResources.TypeMethodMustNotReturnNull,
+                            typeof(IDirectRouteProvider).Name, "GetDirectRoutes");
+                    }
+
+                    entries.AddRange(newEntries);
                 }
 
                 foreach (RouteEntry entry in entries)
                 {
+                    if (entry == null)
+                    {
+                        throw Error.InvalidOperation(
+                            SRResources.TypeMethodMustNotReturnNull,
+                            typeof(IDirectRouteProvider).Name, "GetDirectRoutes");
+                    }
+
+                    DirectRouteBuilder.ValidateRouteEntry(entry);
+
                     // We need to mark each action as only reachable by direct routes so that traditional routes
                     // don't accidentally hit them.
                     HttpControllerDescriptor controllerDescriptor = entry.Route.GetTargetControllerDescriptor();

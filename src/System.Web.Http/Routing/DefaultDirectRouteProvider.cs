@@ -216,20 +216,7 @@ namespace System.Web.Http.Routing
                     typeof(IDirectRouteFactory).Name, "CreateRoute");
             }
 
-            IHttpRoute route = entry.Route;
-            Contract.Assert(route != null);
-
-            HttpActionDescriptor[] targetActions = route.GetTargetActionDescriptors();
-
-            if (targetActions == null || targetActions.Length == 0)
-            {
-                throw new InvalidOperationException(SRResources.DirectRoute_MissingActionDescriptors);
-            }
-
-            if (route.Handler != null)
-            {
-                throw new InvalidOperationException(SRResources.DirectRoute_HandlerNotSupported);
-            }
+            DirectRouteBuilder.ValidateRouteEntry(entry);
 
             return entry;
         }

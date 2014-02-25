@@ -165,7 +165,6 @@
     </Compile>
     <Compile Include="Routing\ConstraintValidation.cs" />
     <Compile Include="Routing\DirectRouteCandidate.cs" />
-    <Compile Include="Routing\DirectRouteProvider.cs" />
     <Compile Include="Routing\LinkGenerationRoute.cs" />
     <Compile Include="Routing\RouteCollectionRoute.cs" />
     <Compile Include="Routing\ParsedRoute.cs" />
