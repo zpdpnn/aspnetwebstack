@@ -18,13 +18,7 @@ namespace System.Web.Http.Controllers
 
             object value;
             controllerDescriptor.Properties.TryGetValue(AttributeRoutedPropertyKey, out value);
-
-            // We fall back to the attributes here so that we continue to do the right thing when 
-            // MapAttributeRoutes isn't called.
-            return 
-                value as bool? ?? false ||
-                controllerDescriptor.GetCustomAttributes<IDirectRouteFactory>(inherit: false).Any() || 
-                controllerDescriptor.GetCustomAttributes<IHttpRouteInfoProvider>(inherit: false).Any();
+            return value as bool? ?? false;
         }
 
         public static void SetIsAttributeRouted(this HttpControllerDescriptor controllerDescriptor, bool value)
