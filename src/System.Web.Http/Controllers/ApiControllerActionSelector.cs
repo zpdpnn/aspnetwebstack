@@ -93,7 +93,7 @@ namespace System.Web.Http.Controllers
             // Includes action descriptors for actionsByVerb with and without route attributes.
             private readonly CandidateAction[] _combinedCandidateActions;
 
-            private readonly IDictionary<ReflectedHttpActionDescriptor, string[]> _actionParameterNames = new Dictionary<ReflectedHttpActionDescriptor, string[]>();
+            private readonly IDictionary<HttpActionDescriptor, string[]> _actionParameterNames = new Dictionary<HttpActionDescriptor, string[]>();
 
             // Includes action descriptors for actionsByVerb with and without route attributes.
             private readonly ILookup<string, HttpActionDescriptor> _combinedActionNameMapping;
@@ -141,7 +141,6 @@ namespace System.Web.Http.Controllers
                 _combinedActionNameMapping = 
                     _combinedCandidateActions
                     .Select(c => c.ActionDescriptor)
-                    .Cast<HttpActionDescriptor>()
                     .ToLookup(actionDesc => actionDesc.ActionName, StringComparer.OrdinalIgnoreCase);
             }
 
@@ -176,8 +175,12 @@ namespace System.Web.Http.Controllers
                     for (int i = 0; i < _combinedCandidateActions.Length; i++)
                     {
                         CandidateAction candidate = _combinedCandidateActions[i];
+
+                        // We know that this cast is safe before we created all of the action descriptors for standard actions
+                        ReflectedHttpActionDescriptor action = (ReflectedHttpActionDescriptor)candidate.ActionDescriptor;
+
                         // Allow standard routes access inherited actionsByVerb or actionsByVerb without Route attributes.
-                        if (((ReflectedHttpActionDescriptor)candidate.ActionDescriptor).MethodInfo.DeclaringType != _controllerDescriptor.ControllerType
+                        if (action.MethodInfo.DeclaringType != _controllerDescriptor.ControllerType
                             || !candidate.ActionDescriptor.IsAttributeRouted())
                         {
                             standardCandidateActions.Add(candidate);
@@ -372,7 +375,7 @@ namespace System.Web.Http.Controllers
                 if (routeData.Values.TryGetValue(RouteValueKeys.Action, out actionName))
                 {
                     // We have an explicit {action} value, do traditional binding. Just lookup by actionName
-                    ReflectedHttpActionDescriptor[] actionsFoundByName = _standardActions.StandardActionNameMapping[actionName].ToArray();
+                    HttpActionDescriptor[] actionsFoundByName = _standardActions.StandardActionNameMapping[actionName].ToArray();
 
                     // Throws HttpResponseException with NotFound status because no action matches the Name
                     if (actionsFoundByName.Length == 0)
@@ -449,7 +452,7 @@ namespace System.Web.Http.Controllers
 
                 foreach (var candidate in candidatesFound)
                 {
-                    ReflectedHttpActionDescriptor descriptor = candidate.ActionDescriptor;
+                    HttpActionDescriptor descriptor = candidate.ActionDescriptor;
                     if (IsSubset(_actionParameterNames[descriptor], candidate.CombinedParameterNames))
                     {
                         matches.Add(candidate);
@@ -637,7 +640,7 @@ namespace System.Web.Http.Controllers
             // Remember this so that we can apply it for model binding. 
             public IHttpRouteData RouteDataSource { get; private set; }
 
-            public ReflectedHttpActionDescriptor ActionDescriptor
+            public HttpActionDescriptor ActionDescriptor
             {
                 get
                 {
@@ -666,7 +669,7 @@ namespace System.Web.Http.Controllers
         private class StandardActionSelectionCache
         {
             // Includes action descriptors only for actions accessible via standard routing (without route attributes).
-            public ILookup<string, ReflectedHttpActionDescriptor> StandardActionNameMapping { get; set; }
+            public ILookup<string, HttpActionDescriptor> StandardActionNameMapping { get; set; }
 
             // Includes action descriptors only for actions accessible via standard routing (without route attributes).
             public CandidateAction[] StandardCandidateActions { get; set; }

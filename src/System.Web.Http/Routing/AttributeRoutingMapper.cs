@@ -102,19 +102,20 @@ namespace System.Web.Http.Routing
             IDictionary<string, HttpControllerDescriptor> controllerMap = controllerSelector.GetControllerMapping();
             if (controllerMap != null)
             {
-                List<RouteEntry> entries = new List<RouteEntry>();
                 foreach (HttpControllerDescriptor controllerDescriptor in controllerMap.Values)
                 {
                     IHttpActionSelector actionSelector = controllerDescriptor.Configuration.Services.GetActionSelector();
 
-                    ILookup<string, HttpActionDescriptor> actionsByName = actionSelector.GetActionMapping(controllerDescriptor);
+                    ILookup<string, HttpActionDescriptor> actionsByName =
+                        actionSelector.GetActionMapping(controllerDescriptor);
                     if (actionsByName == null)
                     {
                         continue;
                     }
-                    
+
                     List<HttpActionDescriptor> actions = actionsByName.SelectMany(g => g).ToList();
-                    IReadOnlyCollection<RouteEntry> newEntries = directRouteProvider.GetDirectRoutes(controllerDescriptor, actions, constraintResolver);
+                    IReadOnlyCollection<RouteEntry> newEntries =
+                        directRouteProvider.GetDirectRoutes(controllerDescriptor, actions, constraintResolver);
                     if (newEntries == null)
                     {
                         throw Error.InvalidOperation(
@@ -122,37 +123,35 @@ namespace System.Web.Http.Routing
                             typeof(IDirectRouteProvider).Name, "GetDirectRoutes");
                     }
 
-                    entries.AddRange(newEntries);
-                }
-
-                foreach (RouteEntry entry in entries)
-                {
-                    if (entry == null)
+                    foreach (RouteEntry entry in newEntries)
                     {
-                        throw Error.InvalidOperation(
-                            SRResources.TypeMethodMustNotReturnNull,
-                            typeof(IDirectRouteProvider).Name, "GetDirectRoutes");
-                    }
-
-                    DirectRouteBuilder.ValidateRouteEntry(entry);
-
-                    // We need to mark each action as only reachable by direct routes so that traditional routes
-                    // don't accidentally hit them.
-                    HttpControllerDescriptor controllerDescriptor = entry.Route.GetTargetControllerDescriptor();
-                    if (controllerDescriptor == null)
-                    {
-                        HttpActionDescriptor[] actionDescriptors = entry.Route.GetTargetActionDescriptors();
-                        foreach (var actionDescriptor in actionDescriptors)
+                        if (entry == null)
                         {
-                            actionDescriptor.SetIsAttributeRouted(true);
+                            throw Error.InvalidOperation(
+                                SRResources.TypeMethodMustNotReturnNull,
+                                typeof(IDirectRouteProvider).Name, "GetDirectRoutes");
                         }
-                    }
-                    else
-                    {
-                        controllerDescriptor.SetIsAttributeRouted(true);
+
+                        DirectRouteBuilder.ValidateRouteEntry(entry);
+
+                        // We need to mark each action as only reachable by direct routes so that traditional routes
+                        // don't accidentally hit them.
+                        HttpControllerDescriptor routeControllerDescriptor = entry.Route.GetTargetControllerDescriptor();
+                        if (routeControllerDescriptor == null)
+                        {
+                            HttpActionDescriptor[] actionDescriptors = entry.Route.GetTargetActionDescriptors();
+                            foreach (var actionDescriptor in actionDescriptors)
+                            {
+                                actionDescriptor.SetIsAttributeRouted(true);
+                            }
+                        }
+                        else
+                        {
+                            routeControllerDescriptor.SetIsAttributeRouted(true);
+                        }                        
                     }
 
-                    collector.Add(entry);
+                    collector.AddRange(newEntries);
                 }
             }
         }
