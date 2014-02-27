@@ -164,7 +164,7 @@ namespace System.Web.Http.Routing
 
             Assert.Equal(AttributeTargets.Class, usage.ValidOn);
             Assert.False(usage.AllowMultiple); // only 1 per class
-            Assert.False(usage.Inherited); // RoutePrefix is not inherited. 
+            Assert.True(usage.Inherited); // RoutePrefix is not inherited. 
         }
 
         [Theory]

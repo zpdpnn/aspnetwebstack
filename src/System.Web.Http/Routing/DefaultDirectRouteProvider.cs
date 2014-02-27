@@ -3,14 +3,33 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Web.Http.Controllers;
 using System.Web.Http.Properties;
 
 namespace System.Web.Http.Routing
 {
+    /// <summary>
+    /// A default implementation of <see cref="IDirectRouteProvider"/>.
+    /// </summary>
     public class DefaultDirectRouteProvider : IDirectRouteProvider
     {
+        /// <summary>
+        /// Gets direct routes for the given controller descriptor and action descriptors based.
+        /// </summary>
+        /// <param name="controllerDescriptor">The controller descriptor.</param>
+        /// <param name="actionDescriptors">The action descriptors for all actions.</param>
+        /// <param name="constraintResolver">The constraint resolver.</param>
+        /// <returns>A set of route entries.</returns>
+        /// <remarks>
+        /// The implementation returns route entries for the given controller and actions. 
+        /// 
+        /// Any actions that have associated <see cref="IDirectRouteFactory"/> instances will produce route
+        /// entries that route direct to those actions.
+        /// 
+        /// Any actions that do not have an associated <see cref="IDirectRouteFactory"/> instances will be
+        /// associated with the controller. If the controller has any associated <see cref="IDirectRouteProvider"/>
+        /// instances, then route entries will be created for the controller and associated actions.
+        /// </remarks>
         public virtual IReadOnlyCollection<RouteEntry> GetDirectRoutes(
             HttpControllerDescriptor controllerDescriptor, 
             IReadOnlyCollection<HttpActionDescriptor> actionDescriptors,
@@ -18,18 +37,11 @@ namespace System.Web.Http.Routing
         {
             List<RouteEntry> entries = new List<RouteEntry>();
 
-            List<ReflectedHttpActionDescriptor> actionsWithoutRoutes = new List<ReflectedHttpActionDescriptor>();
+            List<HttpActionDescriptor> actionsWithoutRoutes = new List<HttpActionDescriptor>();
 
-            foreach (ReflectedHttpActionDescriptor action in actionDescriptors.OfType<ReflectedHttpActionDescriptor>())
+            foreach (HttpActionDescriptor action in actionDescriptors)
             {
                 IReadOnlyCollection<IDirectRouteFactory> factories = GetActionRouteFactories(action);
-
-                // Ignore the Route attributes from inherited actions.
-                if (action.MethodInfo != null &&
-                    action.MethodInfo.DeclaringType != controllerDescriptor.ControllerType)
-                {
-                    factories = null;
-                }
 
                 if (factories != null && factories.Count > 0)
                 {
@@ -67,6 +79,14 @@ namespace System.Web.Http.Routing
             return entries;
         }
 
+        /// <summary>
+        /// Gets route factories for the given controller descriptor.
+        /// </summary>
+        /// <param name="controllerDescriptor">The controller descriptor.</param>
+        /// <returns>A set of route factories.</returns>
+        /// <remarks>
+        /// The implementation returns <see cref="IDirectRouteFactory"/> instances based on attributes on the controller.
+        /// </remarks>
         protected virtual IReadOnlyCollection<IDirectRouteFactory> GetControllerRouteFactories(HttpControllerDescriptor controllerDescriptor)
         {
             Collection<IDirectRouteFactory> newFactories = controllerDescriptor.GetCustomAttributes<IDirectRouteFactory>(inherit: false);
@@ -89,8 +109,26 @@ namespace System.Web.Http.Routing
             return combined;
         }
 
+        /// <summary>
+        /// Gets a set of route factories for the given action descriptor.
+        /// </summary>
+        /// <param name="actionDescriptor">The action descriptor.</param>
+        /// <returns>A set of route factories.</returns>
+        /// <remarks>
+        /// The implementation returns <see cref="IDirectRouteFactory"/> instances based on attributes on the action. Returns
+        /// null if the action was defined on a base class of this controller.
+        /// </remarks>
         protected virtual IReadOnlyCollection<IDirectRouteFactory> GetActionRouteFactories(HttpActionDescriptor actionDescriptor)
         {
+            // Ignore the Route attributes from inherited actions.
+            ReflectedHttpActionDescriptor reflectedActionDescriptor = actionDescriptor as ReflectedHttpActionDescriptor;
+            if (reflectedActionDescriptor != null &&
+                reflectedActionDescriptor.MethodInfo != null &&
+                reflectedActionDescriptor.MethodInfo.DeclaringType != actionDescriptor.ControllerDescriptor.ControllerType)
+            {
+                return null;
+            }
+
             Collection<IDirectRouteFactory> newFactories = actionDescriptor.GetCustomAttributes<IDirectRouteFactory>(inherit: false);
 
             Collection<IHttpRouteInfoProvider> oldProviders = actionDescriptor.GetCustomAttributes<IHttpRouteInfoProvider>(inherit: false);
@@ -111,6 +149,15 @@ namespace System.Web.Http.Routing
             return combined;
         }
 
+        /// <summary>
+        /// Creates <see cref="RouteEntry"/> instances based on the provided factories, controller and actions. The route
+        /// entries provided direct routing to the provided controller and can reach the set of provided actions.
+        /// </summary>
+        /// <param name="controllerDescriptor">The controller descriptor.</param>
+        /// <param name="actionDescriptors">The action descriptors.</param>
+        /// <param name="factories">The direct route factories.</param>
+        /// <param name="constraintResolver">The constraint resolver.</param>
+        /// <returns>A set of route entries.</returns>
         protected virtual IReadOnlyCollection<RouteEntry> GetControllerDirectRoutes(
             HttpControllerDescriptor controllerDescriptor,
             IReadOnlyCollection<HttpActionDescriptor> actionDescriptors,
@@ -125,6 +172,14 @@ namespace System.Web.Http.Routing
                 targetIsAction: false);
         }
 
+        /// <summary>
+        /// Creates <see cref="RouteEntry"/> instances based on the provided factories and action. The route entries
+        /// provide direct routing to the provided action.
+        /// </summary>
+        /// <param name="actionDescriptor">The action descriptor.</param>
+        /// <param name="factories">The direct route factories.</param>
+        /// <param name="constraintResolver">The constraint resolver.</param>
+        /// <returns>A set of route entries.</returns>
         public IReadOnlyCollection<RouteEntry> GetActionDirectRoutes(
             HttpActionDescriptor actionDescriptor, 
             IReadOnlyCollection<IDirectRouteFactory> factories,
@@ -138,6 +193,11 @@ namespace System.Web.Http.Routing
                 targetIsAction: true);
         }
 
+        /// <summary>
+        /// Gets the route prefix from the provided controller.
+        /// </summary>
+        /// <param name="controllerDescriptor">The controller descriptor.</param>
+        /// <returns>The route prefix or null.</returns>
         protected virtual string GetRoutePrefix(HttpControllerDescriptor controllerDescriptor)
         {
             Collection<IRoutePrefix> attributes = controllerDescriptor.GetCustomAttributes<IRoutePrefix>(inherit: false);

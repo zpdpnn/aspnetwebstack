@@ -52,7 +52,7 @@ namespace System.Web.Http.Routing
                 precedence = possiblePrecedence;
             }
 
-            foreach (ReflectedHttpActionDescriptor actionDescriptor in directRouteActions)
+            foreach (HttpActionDescriptor actionDescriptor in directRouteActions)
             {
                 candidates.Add(new CandidateAction
                 {
