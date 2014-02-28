@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Net.Http.Formatting;
@@ -175,6 +176,12 @@ namespace System.Web.Http.ModelBinding
             return ReadAsInternal(formData, type, modelName, actionContext);
         }
 
+        public static object ReadAs(this FormDataCollection formData, Type type, string modelName,
+            IRequiredMemberSelector requiredMemberSelector, IFormatterLogger formatterLogger)
+        {
+            return ReadAs(formData, type, modelName, requiredMemberSelector, formatterLogger, null);
+        }
+
         /// <summary>
         /// Deserialize the form data to the given type, using model binding.  
         /// </summary>
@@ -184,8 +191,9 @@ namespace System.Web.Http.ModelBinding
         /// Or the name of a model to do a partial binding against the form data. This is common for extracting individual fields.</param>
         /// <param name="requiredMemberSelector">The <see cref="IRequiredMemberSelector"/> used to determine required members.</param>
         /// <param name="formatterLogger">The <see cref="IFormatterLogger"/> to log events to.</param>
+        /// <param name="config">The <see cref="HttpConfiguration"/> configuration to pick binder from.</param>
         /// <returns>best attempt to bind the object. The best attempt may be null.</returns>
-        public static object ReadAs(this FormDataCollection formData, Type type, string modelName, IRequiredMemberSelector requiredMemberSelector, IFormatterLogger formatterLogger)
+        public static object ReadAs(this FormDataCollection formData, Type type, string modelName, IRequiredMemberSelector requiredMemberSelector, IFormatterLogger formatterLogger, HttpConfiguration config)
         {
             if (formData == null)
             {
@@ -196,44 +204,60 @@ namespace System.Web.Http.ModelBinding
                 throw Error.ArgumentNull("type");
             }
 
-            using (HttpConfiguration config = new HttpConfiguration())
+            if (config == null)
             {
-                // The HttpActionContext provides access to configuration for ModelBinders, and is also provided
-                // to the IModelBinder when binding occurs. Since an HttpActionContext was not provided, create a default.
-                HttpActionContext actionContext = CreateActionContextForModelBinding(config);
-
-                bool validateRequiredMembers = requiredMemberSelector != null && formatterLogger != null;
-                if (validateRequiredMembers)
+                using (config = new HttpConfiguration())
                 {
-                    // Set a ModelValidatorProvider that understands the IRequiredMemberSelector
-                    config.Services.Replace(typeof(ModelValidatorProvider), new RequiredMemberModelValidatorProvider(requiredMemberSelector));
+                    return ReadAsCore(formData, type, modelName, requiredMemberSelector, formatterLogger, config);
                 }
+            }
+            else
+            {
+                return ReadAsCore(formData, type, modelName, requiredMemberSelector, formatterLogger, config);
+            }
+        }
 
-                object result = ReadAs(formData, type, modelName, actionContext);
+        private static object ReadAsCore(FormDataCollection formData, Type type, string modelName,
+            IRequiredMemberSelector requiredMemberSelector, IFormatterLogger formatterLogger, HttpConfiguration config)
+        {
+            Debug.Assert(config != null, "Configuration is not expeced to be null at this point");
 
-                // The model binding will log any errors to the HttpActionContext's ModelState. Since this is a context
-                // that we created and doesn't map to a real action invocation, we want to forward the errors to 
-                // the user-specified IFormatterLogger.
-                if (formatterLogger != null)
+            // The HttpActionContext provides access to configuration for ModelBinders, and is also provided
+            // to the IModelBinder when binding occurs. Since an HttpActionContext was not provided, create a default.
+            HttpActionContext actionContext = CreateActionContextForModelBinding(config);
+
+            bool validateRequiredMembers = requiredMemberSelector != null && formatterLogger != null;
+            if (validateRequiredMembers)
+            {
+                // Set a ModelValidatorProvider that understands the IRequiredMemberSelector
+                config.Services.Replace(typeof(ModelValidatorProvider),
+                    new RequiredMemberModelValidatorProvider(requiredMemberSelector));
+            }
+
+            object result = ReadAs(formData, type, modelName, actionContext);
+
+            // The model binding will log any errors to the HttpActionContext's ModelState. Since this is a context
+            // that we created and doesn't map to a real action invocation, we want to forward the errors to 
+            // the user-specified IFormatterLogger.
+            if (formatterLogger != null)
+            {
+                foreach (KeyValuePair<string, ModelState> modelStatePair in actionContext.ModelState)
                 {
-                    foreach (KeyValuePair<string, ModelState> modelStatePair in actionContext.ModelState)
+                    foreach (ModelError modelError in modelStatePair.Value.Errors)
                     {
-                        foreach (ModelError modelError in modelStatePair.Value.Errors)
+                        if (modelError.Exception != null)
                         {
-                            if (modelError.Exception != null)
-                            {
-                                formatterLogger.LogError(modelStatePair.Key, modelError.Exception);
-                            }
-                            else
-                            {
-                                formatterLogger.LogError(modelStatePair.Key, modelError.ErrorMessage);
-                            }
+                            formatterLogger.LogError(modelStatePair.Key, modelError.Exception);
+                        }
+                        else
+                        {
+                            formatterLogger.LogError(modelStatePair.Key, modelError.ErrorMessage);
                         }
                     }
                 }
-
-                return result;
             }
+
+            return result;
         }
 
         private static object ReadAsInternal(this FormDataCollection formData, Type type, string modelName, HttpActionContext actionContext)
