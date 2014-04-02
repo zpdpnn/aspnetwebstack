@@ -161,6 +161,8 @@
     <Compile Include="ITempDataProviderFactory.cs" />
     <Compile Include="JQueryFormValueProvider.cs" />
     <Compile Include="JQueryFormValueProviderFactory.cs" />
+    <Compile Include="Routing\DefaultDirectRouteProvider.cs" />
+    <Compile Include="Routing\IDirectRouteProvider.cs" />
     <Compile Include="SelectListGroup.cs" />
     <Compile Include="Html\EnumHelper.cs" />
     <Compile Include="MaxLengthAttributeAdapter.cs" />
