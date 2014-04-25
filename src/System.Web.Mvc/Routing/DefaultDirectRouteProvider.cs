@@ -120,11 +120,11 @@ namespace System.Web.Mvc.Routing
         protected virtual IReadOnlyCollection<IDirectRouteFactory> GetActionRouteFactories(ActionDescriptor actionDescriptor)
         {
             // Skip Route attributes on inherited actions.
-            ReflectedActionDescriptor reflectedActionDescriptor = actionDescriptor as ReflectedActionDescriptor;
-            if (reflectedActionDescriptor != null &&
-                reflectedActionDescriptor.MethodInfo != null &&
-                reflectedActionDescriptor.ControllerDescriptor != null &&
-                reflectedActionDescriptor.MethodInfo.DeclaringType != reflectedActionDescriptor.ControllerDescriptor.ControllerType)
+            IMethodInfoActionDescriptor methodInfoActionDescriptor = actionDescriptor as IMethodInfoActionDescriptor;
+            if (methodInfoActionDescriptor != null &&
+                methodInfoActionDescriptor.MethodInfo != null &&
+                actionDescriptor.ControllerDescriptor != null &&
+                methodInfoActionDescriptor.MethodInfo.DeclaringType != actionDescriptor.ControllerDescriptor.ControllerType)
             {
                 return null;
             }

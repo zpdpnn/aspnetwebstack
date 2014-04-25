@@ -45,6 +45,10 @@ namespace System.Web.Mvc
         /// </summary>
         public HashSet<MethodInfo> StandardRouteMethods { get; private set; }
 
+        /// <summary>
+        /// Methods which have ActionNameSelectorAttributes - these methods have dynamic functionality
+        /// and might choose to opt-in to any request.
+        /// </summary>
         public MethodInfo[] AliasedMethods 
         { 
             get 
@@ -52,6 +56,10 @@ namespace System.Web.Mvc
                 return StandardRouteCache.AliasedMethods;
             }
         }
+
+        /// <summary>
+        /// Methods which do not have ActionNameSelectorAttributes - these are selected statically by name.
+        /// </summary>
         public ILookup<string, MethodInfo> NonAliasedMethods
         {
             get

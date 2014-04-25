@@ -16,22 +16,17 @@ namespace System.Web.Mvc.Routing
     /// </summary>
     public interface IDirectRouteProvider
     {
-#if ASPNETWEBAPI
         /// <summary>Gets the direct routes for a controller.</summary>
         /// <param name="controllerDescriptor">The controller descriptor.</param>
         /// <param name="actionDescriptors">The action descriptors.</param>
         /// <param name="constraintResolver">The inline constraint resolver.</param>
         /// <returns>A set of route entries for the controller.</returns>
+#if ASPNETWEBAPI
         IReadOnlyCollection<RouteEntry> GetDirectRoutes(
             HttpControllerDescriptor controllerDescriptor, 
             IReadOnlyCollection<HttpActionDescriptor> actionDescriptors,
             IInlineConstraintResolver constraintResolver);
 #else
-        /// <summary>Gets the direct routes for a controller.</summary>
-        /// <param name="controllerDescriptor">The controller descriptor.</param>
-        /// <param name="actionDescriptors">The action descriptors.</param>
-        /// <param name="constraintResolver">The inline constraint resolver.</param>
-        /// <returns>A set of route entries for the controller.</returns>
         IReadOnlyCollection<RouteEntry> GetDirectRoutes(
             ControllerDescriptor controllerDescriptor,
             IReadOnlyCollection<ActionDescriptor> actionDescriptors,

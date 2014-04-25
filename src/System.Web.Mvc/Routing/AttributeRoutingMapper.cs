@@ -21,7 +21,7 @@ namespace System.Web.Mvc.Routing
         /// <summary>
         /// Maps the attribute-defined routes for the application.
         /// </summary>
-        /// <param name="routes"></param>
+        /// <param name="routes">The route collection.</param>
         /// <param name="constraintResolver">
         /// The <see cref="IInlineConstraintResolver"/> to use for resolving inline constraints in route templates.
         /// </param>
@@ -43,14 +43,17 @@ namespace System.Web.Mvc.Routing
         /// <summary>
         /// Maps the attribute-defined routes for the application.
         /// </summary>
-        /// <param name="routes"></param>
+        /// <param name="routes">The route collection.</param>
         /// <param name="constraintResolver">
         /// The <see cref="IInlineConstraintResolver"/> to use for resolving inline constraints in route templates.
         /// </param>
         /// <param name="directRouteProvider">
         /// The <see cref="IDirectRouteProvider"/> to use for mapping routes from controller types.
         /// </param>
-        public static void MapAttributeRoutes(RouteCollection routes, IInlineConstraintResolver constraintResolver, IDirectRouteProvider directRouteProvider)
+        public static void MapAttributeRoutes(
+            RouteCollection routes, 
+            IInlineConstraintResolver constraintResolver, 
+            IDirectRouteProvider directRouteProvider)
         {
             if (routes == null)
             {
@@ -80,7 +83,7 @@ namespace System.Web.Mvc.Routing
         /// <summary>
         /// Maps the attribute-defined routes for the application.
         /// </summary>
-        /// <param name="routes"></param>
+        /// <param name="routes">The route collection.</param>
         /// <param name="controllerTypes">The controller types to scan.</param>
         public static void MapAttributeRoutes(RouteCollection routes, IEnumerable<Type> controllerTypes)
         {
@@ -90,7 +93,7 @@ namespace System.Web.Mvc.Routing
         /// <summary>
         /// Maps the attribute-defined routes for the application.
         /// </summary>
-        /// <param name="routes"></param>
+        /// <param name="routes">The route collection.</param>
         /// <param name="controllerTypes">The controller types to scan.</param>
         /// <param name="constraintResolver">
         /// The <see cref="IInlineConstraintResolver"/> to use for resolving inline constraints in route templates.
@@ -104,7 +107,7 @@ namespace System.Web.Mvc.Routing
         /// <summary>
         /// Maps the attribute-defined routes for the application.
         /// </summary>
-        /// <param name="routes"></param>
+        /// <param name="routes">The route collection.</param>
         /// <param name="controllerTypes">The controller types to scan.</param>
         /// <param name="constraintResolver">
         /// The <see cref="IInlineConstraintResolver"/> to use for resolving inline constraints in route templates.
@@ -207,7 +210,7 @@ namespace System.Web.Mvc.Routing
 
             foreach (ReflectedAsyncControllerDescriptor controller in controllers)
             {
-                List<ReflectedActionDescriptor> actions = GetActionDescriptors(controller);
+                List<ActionDescriptor> actions = GetActionDescriptors(controller);
 
                 IReadOnlyCollection<RouteEntry> entries = directRouteProvider.GetDirectRoutes(controller, actions, constraintResolver);
                 if (entries == null)
@@ -236,9 +239,13 @@ namespace System.Web.Mvc.Routing
                         var actionDescriptors = entry.Route.GetTargetActionDescriptors();
                         Contract.Assert(actionDescriptors != null && actionDescriptors.Any());
 
-                        foreach (var actionDescriptor in actionDescriptors.Cast<ReflectedActionDescriptor>())
+                        foreach (var actionDescriptor in actionDescriptors.OfType<IMethodInfoActionDescriptor>())
                         {
-                            controller.Selector.StandardRouteMethods.Remove(actionDescriptor.MethodInfo);
+                            var methodInfo = actionDescriptor.MethodInfo;
+                            if (methodInfo != null)
+                            {
+                                controller.Selector.StandardRouteMethods.Remove(methodInfo);
+                            }
                         }
                     }
                     else
@@ -266,20 +273,20 @@ namespace System.Web.Mvc.Routing
                 .Cast<ReflectedAsyncControllerDescriptor>();
         }
 
-        private static List<ReflectedActionDescriptor> GetActionDescriptors(ReflectedAsyncControllerDescriptor controller)
+        private static List<ActionDescriptor> GetActionDescriptors(ReflectedAsyncControllerDescriptor controller)
         {
             Contract.Assert(controller != null);
 
             AsyncActionMethodSelector actionSelector = controller.Selector;
 
-            var actions = new List<ReflectedActionDescriptor>();
+            var actions = new List<ActionDescriptor>();
             foreach (MethodInfo method in actionSelector.ActionMethods)
             {
                 string actionName = actionSelector.GetActionName(method);
                 ActionDescriptorCreator creator = actionSelector.GetActionDescriptorDelegate(method);
                 Debug.Assert(creator != null);
 
-                ReflectedActionDescriptor action = (ReflectedActionDescriptor)creator(actionName, controller);
+                ActionDescriptor action = creator(actionName, controller);
                 actions.Add(action);
             }
 

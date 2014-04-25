@@ -158,6 +158,7 @@
     <Compile Include="ControllerDescriptorExtensions.cs" />
     <Compile Include="Async\IAsyncActionInvokerFactory.cs" />
     <Compile Include="IActionInvokerFactory.cs" />
+    <Compile Include="IMethodInfoActionDescriptor.cs" />
     <Compile Include="ITempDataProviderFactory.cs" />
     <Compile Include="JQueryFormValueProvider.cs" />
     <Compile Include="JQueryFormValueProviderFactory.cs" />
