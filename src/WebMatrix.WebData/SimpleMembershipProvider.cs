@@ -508,7 +508,7 @@ namespace WebMatrix.WebData
 
                 int insert = db.Execute(@"INSERT INTO [" + MembershipTableName + "] (UserId, [Password], PasswordSalt, IsConfirmed, ConfirmationToken, CreateDate, PasswordChangedDate, PasswordFailuresSinceLastSuccess)"
                                         + " VALUES (@0, @1, @2, @3, @4, @5, @5, @6)", uid, hashedPassword, String.Empty /* salt column is unused */, !requireConfirmationToken, dbtoken, DateTime.UtcNow, defaultNumPasswordFailures);
-                if (insert != 1)
+                if (insert <= 0)
                 {
                     throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                 }
@@ -563,7 +563,7 @@ namespace WebMatrix.WebData
             }
 
             int rows = db.Execute("INSERT INTO " + SafeUserTableName + " (" + columnString.ToString() + ") VALUES (" + argsString.ToString() + ")", argsArray.ToArray());
-            if (rows != 1)
+            if (rows <= 0)
             {
                 throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
             }
@@ -709,7 +709,7 @@ namespace WebMatrix.WebData
                 }
 
                 int deleted = db.Execute(@"DELETE FROM " + MembershipTableName + " WHERE UserId = @0", userId);
-                return (deleted == 1);
+                return (deleted >= 1);
             }
         }
 
@@ -730,7 +730,7 @@ namespace WebMatrix.WebData
                 }
 
                 int deleted = db.Execute(@"DELETE FROM " + SafeUserTableName + " WHERE " + SafeUserIdColumn + " = @0", userId);
-                bool returnValue = (deleted == 1);
+                bool returnValue = (deleted >= 1);
 
                 //if (deleteAllRelatedData) {
                 // REVIEW: do we really want to delete from the user table?
@@ -966,7 +966,7 @@ namespace WebMatrix.WebData
                     token = GenerateToken();
 
                     int rows = db.Execute(@"UPDATE " + MembershipTableName + " SET PasswordVerificationToken = @0, PasswordVerificationTokenExpirationDate = @1 WHERE (UserId = @2)", token, DateTime.UtcNow.AddMinutes(tokenExpirationInMinutesFromNow), userId);
-                    if (rows != 1)
+                    if (rows <= 0)
                     {
                         throw new ProviderException(WebDataResources.Security_DbFailure);
                     }
@@ -1013,7 +1013,7 @@ namespace WebMatrix.WebData
                     {
                         // Clear the Token on success
                         int rows = db.Execute(@"UPDATE " + MembershipTableName + " SET PasswordVerificationToken = NULL, PasswordVerificationTokenExpirationDate = NULL WHERE (UserId = @0)", userId);
-                        if (rows != 1)
+                        if (rows <= 0)
                         {
                             throw new ProviderException(WebDataResources.Security_DbFailure);
                         }
@@ -1129,7 +1129,7 @@ namespace WebMatrix.WebData
                 {
                     // account doesn't exist. create a new one.
                     int insert = db.Execute(@"INSERT INTO [" + OAuthMembershipTableName + "] (Provider, ProviderUserId, UserId) VALUES (@0, @1, @2)", provider, providerUserId, userId);
-                    if (insert != 1)
+                    if (insert <= 0)
                     {
                         throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                     }
@@ -1138,7 +1138,7 @@ namespace WebMatrix.WebData
                 {
                     // account already exist. update it
                     int insert = db.Execute(@"UPDATE [" + OAuthMembershipTableName + "] SET UserId = @2 WHERE UPPER(Provider)=@0 AND UPPER(ProviderUserId)=@1", provider, providerUserId, userId);
-                    if (insert != 1)
+                    if (insert <= 0)
                     {
                         throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                     }
@@ -1154,7 +1154,7 @@ namespace WebMatrix.WebData
             {
                 // account doesn't exist. create a new one.
                 int insert = db.Execute(@"DELETE FROM [" + OAuthMembershipTableName + "] WHERE UPPER(Provider)=@0 AND UPPER(ProviderUserId)=@1", provider, providerUserId);
-                if (insert != 1)
+                if (insert <= 0)
                 {
                     throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
                 }
@@ -1220,7 +1220,7 @@ namespace WebMatrix.WebData
 
                     // insert new record
                     int insert = db.Execute(@"INSERT INTO [" + OAuthTokenTableName + "] (Token, Secret) VALUES(@0, @1)", requestToken, requestTokenSecret);
-                    if (insert != 1)
+                    if (insert <= 0)
                     {
                         throw new ProviderException(WebDataResources.SimpleMembership_FailToStoreOAuthToken);
                     }
